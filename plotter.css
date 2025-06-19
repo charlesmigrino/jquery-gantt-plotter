@@ -1,0 +1,488 @@
+/*!
+ * Plotter v1.0.0
+ * Description: Waterfall Plotter for jQuery
+ * Author: Charles Migrino
+ * License: MIT
+ * Repository: github.com/charlesmigrino
+ * Date: 2025-06-19
+ */
+
+.plotter-container {
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  position: relative;
+
+  .sticky {
+    position: absolute;
+    left: var(--sticky-left, 0);
+    top: var(--sticky-top, 0);
+    transform: translateX(var(--sticky-transform-x, 0)) translateY(var(--sticky-transform-y, 0));
+    transition: left 500ms ease-out, top 500ms ease-out, transform 500ms ease-out;
+  }
+
+  .counter {
+    background: rgba(231, 76, 60, 1.0);
+    color: white;
+    padding: 5px 0px;
+    margin: auto;
+    border-radius: 21px;
+    width: 49px;
+    height: auto;
+    text-align: center;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 300ms ease;
+  }
+
+  .zoom-panel {
+    margin-left: -50px;
+    white-space: nowrap;
+  }
+
+  .text-adjust-panel {
+    margin-top: -50px;
+    text-align: center;
+    border-top-right-radius: 0px;
+    border-top-left-radius: 0px;
+  }
+
+  .zoom-panel,
+  .text-adjust-panel,
+  .control-panel {
+    border-radius: 5px;
+    background: white;
+    opacity: 0;
+    transition: opacity 300ms ease, left 50ms ease, top 50ms ease !important;
+
+    > i {
+      align-self: center;
+      padding: 10px 0px;
+    }
+
+    > button {
+      height: 40px;
+      width: 40px;
+      font-size: 17px;
+      padding: 0.35rem;
+    }
+  }
+
+  .counter.left {
+  }
+
+  .counter.right {
+  }
+
+  .plotter-main {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: stretch;
+    min-height: 100%;
+    font-size: var(--item-font-size, 14px);
+
+    .plotter-header {
+
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      flex-wrap: nowrap;
+      flex-grow: 0;
+      flex-shrink: 0;
+      /*height: 45px;*/
+      width: auto;
+      color: white;
+
+      .plotter-header-item {
+        /*padding: 10px;*/
+        font-size: 13px;
+        font-weight: 400;
+        flex: 0 0 var(--item-width);
+        /*height: 100%;*/
+        text-align: center;
+        background: var(--header-bg, #16a085);
+        /*display: flex;
+        align-items: center;*/
+        overflow: hidden;
+
+        > div {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          justify-content: center;
+
+          .month-name {
+            top: 10px;
+            color: white;
+            opacity: 0;
+            padding: 5px 10px 0px;
+            text-align: left;
+            transition: opacity 300ms ease;
+          }
+  
+          .month-name.fixed-active {
+            opacity: 1;
+          }
+  
+          .day-name {
+            padding: 0px 10px;
+            text-align: left;
+            white-space: nowrap;
+          }
+  
+          .weekday-name {
+            text-transform: uppercase;
+            background: rgba(0, 0, 0, 0.4);
+          }
+
+        }
+
+        > div.week-end {
+          .weekday-name {
+            background: rgba(231, 76, 60,0.95);
+            color: white;
+          }
+        }
+
+        span {
+          margin: auto;
+        }
+      }
+
+      .plotter-header-item.active {
+        .month-name {
+          opacity: 1;
+        }
+      }
+
+      .plotter-header-item:not(:last-child) {
+        border-right: 1px solid var(--header-bd, #95a5a6);
+      }
+
+      .plotter-header-item.today {
+        font-weight: 600;
+        background: var(--header-today-bg, #2ecc71);
+      }
+    }
+
+    .plotter-body {
+      position: relative;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      row-gap: 8px;
+      padding-top: 10px;
+      padding-bottom: 50px;
+      flex-grow: 1;
+
+      .plotter-column {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 100%;
+        flex-grow: 1;
+        flex-shrink: 1;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+  
+        .plotter-column-item {
+          height: 100%;
+          flex: 0 0 var(--item-width);
+          background: var(--column-bg, #bdc3c7);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: transparent;
+        }
+
+        .plotter-column-item:nth-child(even) {
+          background: var(--column-even-bg, #dddee0);
+        }
+
+        .plotter-column-item.highlight {
+          animation-name: plotter-pulse-highlight;
+          animation-duration: 2.5s;
+          animation-iteration-count: 1;
+          animation-timing-function: ease-in-out;
+        }
+  
+        .plotter-column-item.today {
+          //background: var(--column-today-bg, rgba(0, 184, 148,0.45));
+        }
+  
+        .plotter-column-item:not(:last-child) {
+          border-right: 1px solid var(--column-bd, rgba(0,0,0,0.15));
+        }
+      }
+
+      .plotter-item.updating {
+        pointer-events: none;
+        animation-name: plotter-pulse-fade;
+        animation-duration: 1s;
+        animation-iteration-count: infinite;
+        animation-timing-function: linear;
+      }
+
+      .plotter-item.moving {
+        opacity: 0.55;
+        box-shadow: 3px 4px 0px 0px transparent;
+        position: absolute;
+        z-index: 2;
+      }
+
+      .plotter-item {
+        display: inline-block;
+        min-height: 30px;
+        height: auto;
+        position: relative;
+        user-select: none;
+        z-index: 0;
+        background: var(--item-bg, rgba(231, 76, 60, 1.0));
+        color: var(--item-fg, #fff);
+        left: calc(var(--item-width) * var(--item-left, 0));
+        width: calc((var(--item-width) * var(--item-span, 0)));
+        border-radius: 5px;
+        box-shadow: var(--item-box-shadow, 3px 4px 0px 0px rgba(0, 0, 0, 0.25));
+        order: var(--item-order, 1);
+      }
+
+      .plotter-item:not(.no-movement) {
+        cursor: grab;
+      }
+
+      .plotter-item:not(.no-resize) {
+        padding-left: 6px;
+        padding-right: 6px;
+      }
+
+      .plotter-item:not(.no-resize) > .side-handle.end,
+      .plotter-item:not(.no-resize) > .side-handle.start {
+        content: "";
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 30%;
+        max-height: 100px;
+        background: rgba(255, 255, 255, 0.75);
+        border-radius: 8px;
+        transition: height 300ms ease-out, background 300ms ease-out;
+      }
+
+      .plotter-item:not(.no-resize) > .side-handle.end {
+        right: 3px;
+      }
+
+      .plotter-item:not(.no-resize) > .side-handle.start {
+        left: 3px;
+      }
+
+      .plotter-item.resize-s.for-resize > .side-handle.start,
+      .plotter-item.resize-s.resizing > .side-handle.start {
+        transform: translateY(-50%);
+        height: 40%;
+        background: rgba(255, 255, 255, 1);
+      }
+
+      .plotter-item.resize-e.for-resize > .side-handle.end,
+      .plotter-item.resize-e.resizing > .side-handle.end {
+        transform: translateY(-50%);
+        height: 50%;
+        background: rgba(255, 255, 255, 1);
+      }
+
+      .plotter-item.child-item:not(.moving,.resizing):before {
+        content: "";
+        position: absolute;
+        width: calc((var(--item-width-px) * var(--child-offset, 0)) + var(--item-width-px) / 2);
+        height: calc(50% + 10px);
+        background: transparent;
+        border-left: 4px solid gray;
+        border-bottom: 4px solid gray;
+        left: 0px;
+        top: -0.3em;
+        transform: translateX(-100%);
+      }
+
+      .plotter-item.for-resize {
+        cursor: col-resize;
+      }
+
+      .plotter-item.resizing {
+        transition: width 150ms linear, left 150ms linear;
+      }
+
+      .plotter-item:not(.moving,.resizing) {
+        transition: width 300ms ease-in-out, top 300ms ease-in-out, opacity 300ms ease-in-out;
+      }
+
+      .drawer-item {
+        position: relative;
+        left: 0;
+      }
+    }
+
+    .plotter-body:has(.plotter-item.resizing) {
+      cursor: col-resize;
+
+      .plotter-item {
+        pointer-events: none;
+      }
+    }
+
+    .plotter-body:has(.plotter-item.resizing.resize-s) {
+      .plotter-column {
+        .plotter-column-item:hover {
+          border-left: 2px dashed rgba(231, 76, 60, 0.65);
+        }
+      }
+    }
+
+    .plotter-body:has(.plotter-item.resizing.resize-e) {
+      .plotter-column {
+        .plotter-column-item:hover {
+          border-right: 2px dashed rgba(231, 76, 60, 0.65);
+        }
+      }
+    }
+
+    .plotter-body:has(.plotter-item.moving) {
+      cursor: grabbing;
+
+      .plotter-column {
+        .plotter-column-item:hover {
+          background: rgba(231, 76, 60, 0.65);
+        }
+      }
+
+      .plotter-item {
+        pointer-events: none;
+      }
+    }
+  } 
+}
+
+.plotter-container.debug {
+  .plotter-body {
+    .plotter-column {
+      .plotter-column-item {
+        color: rgba(0,0,0,0.3);
+      }
+    }
+  }
+}
+
+.plotter-container.initialized {
+  .zoom-panel,
+  .text-adjust-panel,
+  .control-panel {
+    opacity: 0.75;
+  }
+
+  .zoom-panel:hover,
+  .text-adjust-panel:hover,
+  .control-panel:hover {
+    opacity: 1;
+  }
+}
+
+.plotter-container.scrolling {
+  .counter:not(:empty) {
+    opacity: 0.95;
+  }
+
+  .zoom-panel,
+  .text-adjust-panel,
+  .control-panel {
+    opacity: 0;
+  }
+
+  .plotter-header-item.active {
+
+    .month-name {
+      opacity: 0;
+    }
+  }
+}
+
+.plotter-container.stacked {
+  .plotter-body {
+    display: grid;
+    grid-auto-rows: min-content;
+    row-gap: 15px;
+    //--item-box-shadow: none;
+    --item-box-shadow: 0px 3px 2px rgba(0,0,0,.2);
+
+    .plotter-item {
+      grid-column-start: 1;
+      display: flex;
+      align-items: center;
+    }
+
+    .plotter-item.has-child {
+      border-radius: 5px 0px 0px 5px;
+    }
+
+    .plotter-item.child-item {
+      border-radius: 0px 5px 5px 0px;
+    }
+
+    .plotter-item:not(.has-child,.child-item) {
+      border-radius: 5px;
+    }
+
+    .plotter-item.has-child {
+      grid-row-start: var(--item-order, 1);
+    }
+
+    .plotter-item.child-item {
+      grid-row-start: var(--item-order, 1);
+    }
+
+    .plotter-item.child-item:not(.moving,.resizing):before {
+      width: calc((var(--item-width-px) * (var(--child-offset, 0) - 1)) + var(--item-width-px));
+      border-left: none;
+      top: 0;
+      --stripe-color-1: rgba(189, 195, 199,1.0);
+      --stripe-color-2: rgba(236, 240, 241,1.0);
+      --stripe-width: 10px;
+      background: #c0c0c0;
+      /*
+      background: repeating-linear-gradient(
+        45deg,         
+        var(--stripe-color-1) 0px,
+        var(--stripe-color-1) var(--stripe-width),
+        var(--stripe-color-2) var(--stripe-width),
+        var(--stripe-color-2) calc(var(--stripe-width) * 2)
+      );
+      */
+      border: none;
+      box-shadow: var(--item-box-shadow, 3px 4px 0px 0px rgba(0, 0, 0, 0.25));
+      height: 100%;
+    }
+  }
+}
+
+@keyframes plotter-pulse-fade {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes plotter-pulse-highlight {
+  0%, 100% {
+    background-color: inherit;
+  }
+  50% {
+    background-color: rgba(241, 196, 15,0.6);
+  }
+}
